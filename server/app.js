@@ -9,7 +9,7 @@ app.use(
     schema: schema,
     graphiql: true,
   })
-); //This function handles the graphql requests
+); //This function handles the graphql requests - middleware
 
 app.listen(4200, () => {
   console.log('Server up and running...');
