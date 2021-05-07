@@ -1,5 +1,7 @@
 const graphql = require('graphql');
 const _ = require('lodash');
+const CarModel = require('../models/Car');
+const BrandModel = require('../models/Brand');
 
 const {
   GraphQLObjectType,
@@ -9,21 +11,23 @@ const {
   GraphQLList,
 } = graphql;
 
-//Dummy Data
-var cars = [
-  { name: 'M3 (E30)', segment: 'Coupe', id: '1', brandId: '1' },
-  { name: 'E-Type', segment: 'Roadster', id: '2', brandId: '3' },
-  { name: 'Quattroporte', segment: 'Sedan', id: '3', brandId: '2' },
-  { name: 'D-Type', segment: 'Roadster', id: '4', brandId: '3' },
-  { name: 'Z8', segment: 'Roadster', id: '5', brandId: '1' },
-  { name: 'Ghibli', segment: 'Sedan', id: '6', brandId: '2' },
-];
+// //Dummy Data
+// var cars = [
+//   { name: 'M3 (E30)', segment: 'Coupe', id: '1', brandId: '1' },
+//   { name: 'E-Type', segment: 'Roadster', id: '2', brandId: '3' },
+//   { name: 'Quattroporte', segment: 'Sedan', id: '3', brandId: '2' },
+//   { name: 'D-Type', segment: 'Roadster', id: '4', brandId: '3' },
+//   { name: 'Z8', segment: 'Roadster', id: '5', brandId: '1' },
+//   { name: 'Ghibli', segment: 'Sedan', id: '6', brandId: '2' },
+// ];
 
-var brands = [
-  { name: 'BMW', c_origin: 'Germany', id: '1' },
-  { name: 'Maserati', c_origin: 'Italy', id: '2' },
-  { name: 'Jaguar', c_origin: 'United Kingdom', id: '3' },
-];
+// var brands = [
+//   { name: 'BMW', c_origin: 'Germany', id: '1' },
+//   { name: 'Maserati', c_origin: 'Italy', id: '2' },
+//   { name: 'Jaguar', c_origin: 'United Kingdom', id: '3' },
+// ];
+
+// 1. OBJECTS IN GQL
 
 const CarType = new GraphQLObjectType({
   //this function takes in a object
@@ -36,7 +40,7 @@ const CarType = new GraphQLObjectType({
       // to get brand of a particular car - calling it brand because a car can only be of one brand
       type: BrandType,
       resolve(parent, args) {
-        return _.find(brands, { id: parent.brandId }); // id of brands matches id of parent which is Car, brand doesn't have Car IDs hence Find
+        //return _.find(brands, { id: parent.brandId }); // id of brands matches id of parent which is Car, brand doesn't have Car IDs hence Find
       },
     },
   }),
@@ -52,11 +56,13 @@ const BrandType = new GraphQLObjectType({
       // if we want to fetch cars by brand, calling it cars because a brand can have many cars
       type: new GraphQLList(CarType), // list of CarType because multiple cars may exist
       resolve(parent, args) {
-        return _.filter(cars, { brandId: parent.id }); //cars has brand IDs hence filter
+        //return _.filter(cars, { brandId: parent.id }); //cars has brand IDs hence filter
       },
     },
   }),
 });
+
+// 2. ROOT QUERIES - Entry points into our graph
 
 const RootQuery = new GraphQLObjectType({
   name: 'RootQueryType',
@@ -69,7 +75,7 @@ const RootQuery = new GraphQLObjectType({
       args: { id: { type: GraphQLID } }, //the argument our query takes
       resolve(parent, args) {
         //connect to DB or get data from other source
-        return _.find(cars, { id: args.id }); //find it by id using lodash, whatever we send to the user we return - EOQ
+        //return _.find(cars, { id: args.id }); //find it by id using lodash, whatever we send to the user we return - EOQ
       },
     },
 
@@ -78,7 +84,7 @@ const RootQuery = new GraphQLObjectType({
       type: BrandType,
       args: { id: { type: GraphQLID } },
       resolve(parent, args) {
-        return _.find(brands, { id: args.id }); // ID property of brands matches ID property of args
+        //return _.find(brands, { id: args.id }); // ID property of brands matches ID property of args
       },
     }, // EOQ
 
@@ -86,7 +92,7 @@ const RootQuery = new GraphQLObjectType({
       //query 3 - SOQ o/p multiple cars and relationship already est. between cars and brand (singular) in CarType
       type: new GraphQLList(CarType),
       resolve(parent, args) {
-        return cars;
+        //return cars;
       },
     }, //EOQ
 
@@ -94,12 +100,41 @@ const RootQuery = new GraphQLObjectType({
       //query 4 - SOQ o/p multiple brands and relationship already est. between brands and cars in BrandType
       type: new GraphQLList(BrandType),
       resolve(parent, args) {
-        return brands;
+        //return brands;
       },
     }, //EOQ
   },
 });
 
+// 3. MUTATIONS
+
+const Mutation = new GraphQLObjectType({
+  // Mutation for CRUD
+  name: 'Mutation',
+  fields: {
+    // store different kind of mutations
+
+    // add a brand in DB
+    addBrand: {
+      type: BrandType,
+      args: {
+        name: { type: GraphQLString },
+        c_origin: { type: GraphQLString },
+      },
+
+      resolve(parent, args) {
+        let brand = new BrandModel({
+          name: args.name,
+          c_origin: args.c_origin,
+        });
+
+        return brand.save(); // SAVE TO DB
+      },
+    },
+  },
+});
+
 module.exports = new GraphQLSchema({
   query: RootQuery, //the query of this schema is going to be this
+  mutation: Mutation, // the const variable and not the name
 });
