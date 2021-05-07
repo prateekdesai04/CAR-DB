@@ -9,6 +9,7 @@ const {
   GraphQLString,
   GraphQLSchema,
   GraphQLList,
+  GraphQLNonNull,
 } = graphql;
 
 // //Dummy Data
@@ -40,7 +41,9 @@ const CarType = new GraphQLObjectType({
       // to get brand of a particular car - calling it brand because a car can only be of one brand
       type: BrandType,
       resolve(parent, args) {
+        // the resolve only gets executed if we ask for brand
         //return _.find(brands, { id: parent.brandId }); // id of brands matches id of parent which is Car, brand doesn't have Car IDs hence Find
+        return BrandModel.findById(parent.brandId);
       },
     },
   }),
@@ -57,6 +60,7 @@ const BrandType = new GraphQLObjectType({
       type: new GraphQLList(CarType), // list of CarType because multiple cars may exist
       resolve(parent, args) {
         //return _.filter(cars, { brandId: parent.id }); //cars has brand IDs hence filter
+        return CarModel.find({ brandId: parent.id });
       },
     },
   }),
@@ -76,6 +80,7 @@ const RootQuery = new GraphQLObjectType({
       resolve(parent, args) {
         //connect to DB or get data from other source
         //return _.find(cars, { id: args.id }); //find it by id using lodash, whatever we send to the user we return - EOQ
+        return CarModel.findById(args.id);
       },
     },
 
@@ -85,6 +90,7 @@ const RootQuery = new GraphQLObjectType({
       args: { id: { type: GraphQLID } },
       resolve(parent, args) {
         //return _.find(brands, { id: args.id }); // ID property of brands matches ID property of args
+        return BrandModel.findById(args.id);
       },
     }, // EOQ
 
@@ -93,6 +99,7 @@ const RootQuery = new GraphQLObjectType({
       type: new GraphQLList(CarType),
       resolve(parent, args) {
         //return cars;
+        return CarModel.find({}); // empty because no criteria needed to fetch all books, we need all
       },
     }, //EOQ
 
@@ -101,6 +108,7 @@ const RootQuery = new GraphQLObjectType({
       type: new GraphQLList(BrandType),
       resolve(parent, args) {
         //return brands;
+        return BrandModel.find({});
       },
     }, //EOQ
   },
@@ -118,8 +126,8 @@ const Mutation = new GraphQLObjectType({
     addBrand: {
       type: BrandType,
       args: {
-        name: { type: GraphQLString },
-        c_origin: { type: GraphQLString },
+        name: { type: new GraphQLNonNull(GraphQLString) },
+        c_origin: { type: new GraphQLNonNull(GraphQLString) },
       },
 
       resolve(parent, args) {
@@ -129,6 +137,24 @@ const Mutation = new GraphQLObjectType({
         });
 
         return brand.save(); // SAVE TO DB
+      },
+    },
+
+    addCar: {
+      type: CarType,
+      args: {
+        name: { type: new GraphQLNonNull(GraphQLString) },
+        segment: { type: new GraphQLNonNull(GraphQLString) },
+        brandId: { type: new GraphQLNonNull(GraphQLID) },
+      },
+      resolve(parent, args) {
+        let car = new CarModel({
+          name: args.name,
+          segment: args.segment,
+          brandId: args.brandId,
+        });
+
+        return car.save(); // SAVE TO DB
       },
     },
   },
