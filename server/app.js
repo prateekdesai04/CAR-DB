@@ -3,7 +3,10 @@ const app = express();
 const { graphqlHTTP } = require('express-graphql'); //allows express to understand GraphQL
 const schema = require('./schema/schema');
 const mongoose = require('mongoose');
+const cors = require('cors');
 require('dotenv/config'); // to get .env variables
+
+app.use(cors());
 
 app.use(
   //This function handles the graphql requests - middleware
