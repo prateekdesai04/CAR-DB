@@ -14,13 +14,15 @@ const getCarsQuery = gql`
 const CarList = () => {
   const { loading, error, data } = useQuery(getCarsQuery);
   console.log(data);
-  console.log(loading);
-  console.log(error);
 
+  if (loading) return <div>LOADING....</div>;
+  if (error) return <div>ERROR !!</div>;
   return (
     <div>
       <ul id='car-list'>
-        <li>Car Name</li>
+        {data.cars.map((car) => {
+          return <li key={car.id}>{car.name}</li>;
+        })}
       </ul>
     </div>
   );
